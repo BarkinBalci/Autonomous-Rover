@@ -5,6 +5,9 @@ import contextlib
 import numpy as np
 import time
 import argparse
+import sys
+import math
+
 
 nnPathDefault = str((Path(__file__).parent / Path('models/mobilenet-ssd_openvino_2021.2_6shave.blob')).resolve().absolute())
 parser = argparse.ArgumentParser()
@@ -32,6 +35,7 @@ right.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
 # Define a source - color camera
 cam_rgb = pipeline.createColorCamera()
+cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam_rgb.setPreviewSize(300, 300)
 cam_rgb.setFps(30)
 cam_rgb.setInterleaved(False)
@@ -82,6 +86,47 @@ class trackbar:
         cv2.createTrackbar(trackbarName, windowName, minValue, maxValue, handler)
         cv2.setTrackbarPos(trackbarName, windowName, defaultValue)
 
+
+class wlsFilter:
+    wlsStream = "wlsFilter"
+
+    def on_trackbar_change_lambda(self, value):
+        self._lambda = value * 100
+
+    def on_trackbar_change_sigma(self, value):
+        self._sigma = value / float(10)
+
+    def __init__(self, _lambda, _sigma):
+        self._lambda = _lambda
+        self._sigma = _sigma
+        self.wlsFilter = cv2.ximgproc.createDisparityWLSFilterGeneric(False)
+        cv2.namedWindow(self.wlsStream)
+        self.lambdaTrackbar = trackbar('Lambda', self.wlsStream, 0, 255, 80, self.on_trackbar_change_lambda)
+        self.sigmaTrackbar = trackbar('Sigma', self.wlsStream, 0, 100, 15, self.on_trackbar_change_sigma)
+
+    def filter(self, disparity, right, depthScaleFactor):
+        # https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/include/opencv2/ximgproc/disparity_filter.hpp#L92
+        self.wlsFilter.setLambda(self._lambda)
+        # https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/include/opencv2/ximgproc/disparity_filter.hpp#L99
+        self.wlsFilter.setSigmaColor(self._sigma)
+        filteredDisp = self.wlsFilter.filter(disparity, right)
+
+        # Compute depth from disparity (32 levels)
+        with np.errstate(divide='ignore'):  # Should be safe to ignore div by zero here
+            # raw depth values
+            frame_depth = (depthScaleFactor / filteredDisp).astype(np.uint16)
+
+        return filteredDisp, frame_depth
+
+
+wlsFilter = wlsFilter(_lambda=8000, _sigma=1.5)
+
+baseline = 75  # mm
+disp_levels = 96
+fov = 71.86
+
+
+
 def frameNorm(frame, bbox):
     normVals = np.full(len(bbox), frame.shape[0])
     normVals[::2] = frame.shape[1]
@@ -91,15 +136,13 @@ def frameNorm(frame, bbox):
 def displayFrame(name, frame, detections):
     for detection in detections:
         bbox = frameNorm(frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
-        cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 8)
-        cv2.putText(frame, labelMap[detection.label], (bbox[0] + 40, bbox[1] + 80), cv2.FONT_HERSHEY_TRIPLEX, 2, 255, 4)
-        cv2.putText(frame, f"{int(detection.confidence * 100)}%", (bbox[0] + 40, bbox[1] + 160), cv2.FONT_HERSHEY_TRIPLEX, 2, 255, 4)
+        cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 8)
+        cv2.putText(frame, labelMap[detection.label], (bbox[0] + 20, bbox[1] + 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, f"{int(detection.confidence * 100)}%", (bbox[0] + 20, bbox[1] + 80), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 255, 0), 2)
     cv2.imshow(name, frame)
 
 # MobilenetSSD label texts
 labelMap = ["background", "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
-
-
 
 # https://docs.python.org/3/library/contextlib.html#contextlib.ExitStack
 with contextlib.ExitStack() as stack:
@@ -110,21 +153,37 @@ with contextlib.ExitStack() as stack:
         q_video = device.getOutputQueue(name="video", maxSize=4, blocking=False)
         q_rgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         q_det = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
-        q_list.append(( q_video, q_rgb, q_det))
+        q_right = device.getOutputQueue(name = "rectifiedRight", maxSize=4, blocking=False)
+        q_disparity = device.getOutputQueue(name = "depth", maxSize=4, blocking=False)
+
+        q_list.append(( q_video, q_rgb, q_det, q_right, q_disparity))
 
     while True:
 
-        for i, (q_video, q_rgb, q_det) in enumerate(q_list):
+        for i, (q_video, q_rgb, q_det, q_right, q_disparity) in enumerate(q_list):
             in_video = q_video.get()
             in_rgb = q_rgb.get()
             in_det = q_det.get()
+            in_right = q_right.get()
+            in_disparity = q_disparity.get()
             frame_rgb = in_rgb.getCvFrame()
             frame_video = in_video.getCvFrame()
+            frame_right = in_right.getFrame()
+            frame_disparity = in_disparity.getFrame()
+            frame_right = cv2.flip(frame_right, flipCode=1)
+            focal = frame_disparity.shape[1] / (2. * math.tan(math.radians(fov / 2)))
+            depthScaleFactor = baseline * focal
+
+            filteredDisp, frame_depth = wlsFilter.filter(frame_disparity, frame_right, depthScaleFactor)
+            filteredDisp = (filteredDisp * (255 / (disp_levels - 1))).astype(np.uint8)
+            coloredDisp = cv2.applyColorMap(filteredDisp, cv2.COLORMAP_JET)
+
             detections = []
             if in_det is not None:
                 detections = in_det.detections
             cv2.namedWindow("video-" + str(i + 1), cv2.WINDOW_NORMAL)
             cv2.resizeWindow("video-" + str(i + 1), 1024, 576)
             displayFrame("video-" + str(i + 1), frame_video, detections)
+            displayFrame(wlsFilter.wlsStream + str(i + 1), coloredDisp, detections)
         if cv2.waitKey(1) == ord('q'):
             break
