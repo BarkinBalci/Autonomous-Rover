@@ -10,7 +10,7 @@ right_ESC=12
 pi = pigpio.pi();
 pi.set_servo_pulsewidth(left_ESC, 0)
 pi.set_servo_pulsewidth(right_ESC, 0)
-
+#commit
 
 
 max_value = 2000 #change this if your ESC's max value is different or leave it be
