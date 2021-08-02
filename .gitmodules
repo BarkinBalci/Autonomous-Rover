@@ -1,3 +1,3 @@
 [submodule "Autonomous-Rover"]
 	path = Autonomous-Rover
-	url = ../../Eldoritto/Autonomous-Rover-core.git
+	url = ../../Eldoritto/Autonomous-Rover.git
