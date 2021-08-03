@@ -74,8 +74,8 @@ def control():
     right_speed = 0
     # change your speed if you want to.... it should be between 700 - 2000
 
-    print(
-        "Controls - a to decrease speed & d to increase speed OR q to decrease a lot of speed & e to increase a lot of speed")
+    print("Controls - Left s+ z- / Right k+ m-")
+    print("Brake - v")
     while True:
         pi.set_servo_pulsewidth(lMotor, left_speed + 1500)
         pi.set_servo_pulsewidth(rMotor, right_speed + 1500)
@@ -92,6 +92,11 @@ def control():
             print("speed = %d" % (right_speed,))
         elif inp == "m":
             right_speed -= 50  # decrementing the speed
+            print("speed = %d" % (right_speed,))
+        elif inp == "v":
+            left_speed = 0  # decrementing the speed
+            right_speed = 0  # decrementing the speed
+            print("speed = %d" % (left_speed,))
             print("speed = %d" % (right_speed,))
         elif inp == "stop":
             stop()  # stopping everything
