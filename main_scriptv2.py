@@ -126,6 +126,7 @@ baseline = 75  # mm
 disp_levels = 96
 fov = 71.86
 coloredDisp = {}
+collision = {}
 fig, ax = plt.subplots()
 
 ax.set_title('Histogram (RGB)')
@@ -205,7 +206,13 @@ with contextlib.ExitStack() as stack:
             percentageG = cv2.calcHist([g], [0], None, [1], [0, 255]) / numPixels / 10
             percentageB = cv2.calcHist([b], [0], None, [1], [0, 255]) / numPixels / 10
             if percentageR < 0.08:
+                collision[i] = True
                 print("Possible Collision on OAK-D #" + str(i))
+            if percentageR > 0.08:
+                collision[i] = False
+                print("OAK-D #" + str(i) + "is clear.")
+            if collision[0] == True and collision[1] == True and collision[2] == True:
+                print("Possible collision detected on all OAK-D's")
             detections = []
             if in_det is not None:
                 detections = in_det.detections

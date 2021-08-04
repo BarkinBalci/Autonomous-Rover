@@ -47,6 +47,7 @@ nnOut.setStreamName("nn")
 nn.out.link(nnOut.input)
 
 q_list = []
+rgb_frame = {}
 
 def frameNorm(frame, bbox):
     normVals = np.full(len(bbox), frame.shape[0])
@@ -77,13 +78,12 @@ with contextlib.ExitStack() as stack:
         q_rgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         q_det = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
         q_list.append((q_rgb, q_det))
-#test
     while True:
 
         for i, (q_rgb, q_det) in enumerate(q_list):
             in_rgb = q_rgb.get()
             in_det = q_det.tryGet()
-            rgb_frame = in_rgb.getCvFrame()
+            rgb_frame[i] = in_rgb.getCvFrame()
             detections = []
             if in_det is not None:
                 detections = in_det.detections
