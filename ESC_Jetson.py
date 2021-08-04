@@ -22,37 +22,37 @@
 import RPi.GPIO as GPIO
 import time
 
-output_pins = {
-    'JETSON_XAVIER': 18,
+left_output_pins = {
     'JETSON_NANO': 33,
-    'JETSON_NX': 33,
-    'CLARA_AGX_XAVIER': 18,
-    'JETSON_TX2_NX': 32,
 }
-output_pin = output_pins.get(GPIO.model, None)
-if output_pin is None:
+right_output_pins = {
+    'JETSON_NANO': 32,
+}
+left_output_pin = left_output_pins.get(GPIO.model, None)
+if left_output_pin is None:
+    raise Exception('PWM not supported on this board')
+right_output_pin = right_output_pins.get(GPIO.model, None)
+if right_output_pin is None:
     raise Exception('PWM not supported on this board')
 
 
 def main():
+    leftSpeed = 0
+    rightSpeed = 0
     # Pin Setup:
     # Board pin-numbering scheme
     GPIO.setmode(GPIO.BOARD)
-    # set pin as an output pin with optional initial state of HIGH
-    GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
-    leftMotor = GPIO.PWM(output_pin, 50)
-    rightMotor = GPIO.PWM(output_pin, 79)
-    val = 1500
-    leftSpeed = 0
-    rightSpeed = 0
-    leftMotor.start(val)
-    rightMotor.start(val)
+    # set pin as an output pin
+    GPIO.setup(left_output_pin, GPIO.OUT,)
+    GPIO.setup(right_output_pin, GPIO.OUT)
+    leftMotor = GPIO.PWM(left_output_pin, leftSpeed)
+    rightMotor = GPIO.PWM(right_output_pin, rightSpeed)
+    leftMotor.start(50)
+    rightMotor.start(50)
 
     print("PWM running. Left Motor s+ z- / Right Motor k+ m- / Stop v")
     try:
         while True:
-            leftMotor.ChangeDutyCycle(val + leftSpeed)
-            rightMotor.ChangeDutyCycle(val + rightSpeed)
             inp = input()
             if inp == "s":
                 leftSpeed += 50  # decrementing the speed a lot
@@ -71,6 +71,8 @@ def main():
                 rightSpeed = 0  # decrementing the speed
                 print("speed = %d" % (leftSpeed,))
                 print("speed = %d" % (rightSpeed,))
+            leftMotor.ChangeDutyCycle(leftSpeed)
+            rightMotor.ChangeDutyCycle(rightSpeed)
     finally:
         leftMotor.stop()
         rightMotor.stop()
