@@ -79,6 +79,13 @@ finally:
     leftMotor.stop()
     rightMotor.stop()
     GPIO.cleanup()
+def leftMotorSpeed(Speed):
+    leftMotor.ChangeDutyCycle(Speed)
 
-if __name__ == '__main__':
-    main()
+def rightMotorSpeed(Speed):
+    rightMotor.ChangeDutyCycle(Speed)
+
+def disarm():
+    leftMotor.stop()
+    rightMotor.stop()
+    GPIO.cleanup()
