@@ -7,6 +7,7 @@ import time
 import argparse
 import sys
 import math
+import matplotlib.pyplot as plt
 
 
 nnPathDefault = str((Path(__file__).parent / Path('models/mobilenet-ssd_openvino_2021.2_5shave.blob')).resolve().absolute())
@@ -124,7 +125,23 @@ wlsFilter = wlsFilter(_lambda=8000, _sigma=1.5)
 baseline = 75  # mm
 disp_levels = 96
 fov = 71.86
+coloredDisp = {}
+fig, ax = plt.subplots()
 
+ax.set_title('Histogram (RGB)')
+
+ax.set_xlabel('Bin')
+ax.set_ylabel('Frequency')
+# Initialize plot line object(s). Turn on interactive plotting and show plot.
+lw = 3
+alpha = 0.5
+lineR, = ax.plot(np.arange(10), np.zeros((10,)), c='r', lw=lw, alpha=alpha)
+lineG, = ax.plot(np.arange(10), np.zeros((10,)), c='g', lw=lw, alpha=alpha)
+lineB, = ax.plot(np.arange(10), np.zeros((10,)), c='b', lw=lw, alpha=alpha)
+
+ax.set_xlim(0, 10 - 1)
+ax.set_ylim(0, 1)
+plt.ion()
 
 
 def frameNorm(frame, bbox):
@@ -178,11 +195,20 @@ with contextlib.ExitStack() as stack:
             depthScaleFactor = baseline * focal
             filteredDisp, frame_depth = wlsFilter.filter(frame_disparity, frame_right, depthScaleFactor)
             filteredDisp = (filteredDisp * (255 / (disp_levels - 1))).astype(np.uint8)
-            coloredDisp = cv2.applyColorMap(filteredDisp, cv2.COLORMAP_JET)
-
+            coloredDisp[i] = cv2.applyColorMap(filteredDisp, cv2.COLORMAP_JET)
+            numPixels = np.prod(coloredDisp[i].shape[:2])
+            (b, g, r) = cv2.split(coloredDisp[i])
+            histogramR = cv2.calcHist([r], [0], None, [10], [0, 255]) / numPixels
+            histogramG = cv2.calcHist([g], [0], None, [10], [0, 255]) / numPixels
+            histogramB = cv2.calcHist([b], [0], None, [10], [0, 255]) / numPixels
+            percentageR = cv2.calcHist([r], [0], None, [1], [0, 255]) / numPixels / 10
+            percentageG = cv2.calcHist([g], [0], None, [1], [0, 255]) / numPixels / 10
+            percentageB = cv2.calcHist([b], [0], None, [1], [0, 255]) / numPixels / 10
+            if percentageR < 0.08:
+                print("Possible Collision on OAK-D #" + str(i))
             detections = []
             if in_det is not None:
                 detections = in_det.detections
-            displayFrame("wlsFilter: "+ str(i+1), coloredDisp, detections)
+            displayFrame("wlsFilter: "+ str(i), coloredDisp[i], detections)
         if cv2.waitKey(1) == ord('q'):
             break
