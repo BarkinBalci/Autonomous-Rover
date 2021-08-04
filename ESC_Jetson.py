@@ -3,7 +3,7 @@ import time  # importing time
 
 os.system("sudo pigpiod")  # Launching GPIO library
 time.sleep(1)  # don't remove this, else you will get an error
-import pigpio  # importing GPIO library
+import jetson_gpio as pigpio  # importing GPIO library
 
 lMotor = 4  # ESC connections with the GPIO pins; note its the BROADCOM number, not the GPIO pin number!
 rMotor = 17
