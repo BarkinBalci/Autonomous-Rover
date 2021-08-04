@@ -65,20 +65,25 @@ try:
             rightSpeed += rightIncrease
         elif inp == "m" and rightSpeed > lowestSpeed:
             rightSpeed -= rightIncrease
+        elif inp == "forward":
+            leftSpeed = 100
+            rightSpeed = 100
+        elif inp == "backward":
+            leftSpeed = 0
+            rightSpeed = 0
         elif inp == "v":
             leftSpeed = 50
             rightSpeed = 50
-            leftMotor.ChangeDutyCycle(leftSpeed)
-            rightMotor.ChangeDutyCycle(rightSpeed)
 
         leftMotor.ChangeDutyCycle(leftSpeed)
-        rightMotor.ChangeDutyCycle(leftSpeed)
+        rightMotor.ChangeDutyCycle(rightSpeed)
         print("Left Motor Speed: " + str(leftSpeed))
         print("Right Motor Speed: " + str(rightSpeed))
 finally:
     leftMotor.stop()
     rightMotor.stop()
     GPIO.cleanup()
+
 def leftMotorSpeed(Speed):
     leftMotor.ChangeDutyCycle(Speed)
 
