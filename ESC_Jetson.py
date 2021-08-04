@@ -23,10 +23,11 @@ import RPi.GPIO as GPIO
 import time
 
 left_output_pins = {
-    'JETSON_NANO': 33,
-}
-right_output_pins = {
     'JETSON_NANO': 32,
+}
+
+right_output_pins = {
+    'JETSON_NANO': 33,
 }
 left_output_pin = left_output_pins.get(GPIO.model, None)
 if left_output_pin is None:
@@ -36,47 +37,48 @@ if right_output_pin is None:
     raise Exception('PWM not supported on this board')
 
 
-def main():
-    leftSpeed = 0
-    rightSpeed = 0
-    # Pin Setup:
-    # Board pin-numbering scheme
-    GPIO.setmode(GPIO.BOARD)
-    # set pin as an output pin
-    GPIO.setup(left_output_pin, GPIO.OUT,)
-    GPIO.setup(right_output_pin, GPIO.OUT)
-    leftMotor = GPIO.PWM(left_output_pin, leftSpeed)
-    rightMotor = GPIO.PWM(right_output_pin, rightSpeed)
-    leftMotor.start(50)
-    rightMotor.start(50)
 
-    print("PWM running. Left Motor s+ z- / Right Motor k+ m- / Stop v")
-    try:
-        while True:
-            inp = input()
-            if inp == "s":
-                leftSpeed += 50  # decrementing the speed a lot
-                print("speed = %d" % (leftSpeed,))
-            elif inp == "z":
-                leftSpeed -= 50  # incrementing the speed a lot
-                print("speed = %d" % (leftSpeed,))
-            elif inp == "k":
-                rightSpeed += 50  # incrementing the speed
-                print("speed = %d" % (rightSpeed,))
-            elif inp == "m":
-                rightSpeed -= 50  # decrementing the speed
-                print("speed = %d" % (rightSpeed,))
-            elif inp == "v":
-                leftSpeed = 0  # decrementing the speed
-                rightSpeed = 0  # decrementing the speed
-                print("speed = %d" % (leftSpeed,))
-                print("speed = %d" % (rightSpeed,))
+GPIO.setmode(GPIO.BOARD)
+# set pin as an output pin with optional initial state of HIGH
+GPIO.setup(left_output_pin, GPIO.OUT)
+leftMotor = GPIO.PWM(left_output_pin, 50)
+rightMotor = GPIO.PWM(right_output_pin, 50)
+leftSpeed = 50
+leftIncrease = 5
+rightSpeed = 50
+rightIncrease = 5
+maxSpeed = 100
+lowestSpeed = 0
+leftMotor.start(leftSpeed)
+rightMotor.start(leftSpeed)
+
+
+print("PWM running. Press CTRL+C to exit.")
+try:
+    while True:
+        inp = input()
+        if inp == "s" and leftSpeed < maxSpeed:
+            leftSpeed += leftIncrease
+        elif inp == "z" and leftSpeed > lowestSpeed:
+            leftSpeed -= leftIncrease
+        elif inp == "k" and rightSpeed < maxSpeed:
+            rightSpeed += rightIncrease
+        elif inp == "m" and rightSpeed > lowestSpeed:
+            rightSpeed -= rightIncrease
+        elif inp == "v":
+            leftSpeed = 50
+            rightSpeed = 50
             leftMotor.ChangeDutyCycle(leftSpeed)
             rightMotor.ChangeDutyCycle(rightSpeed)
-    finally:
-        leftMotor.stop()
-        rightMotor.stop()
-        GPIO.cleanup()
+
+        leftMotor.ChangeDutyCycle(leftSpeed)
+        rightMotor.ChangeDutyCycle(leftSpeed)
+        print("Left Motor Speed: " + str(leftSpeed))
+        print("Right Motor Speed: " + str(rightSpeed))
+finally:
+    leftMotor.stop()
+    rightMotor.stop()
+    GPIO.cleanup()
 
 if __name__ == '__main__':
     main()
