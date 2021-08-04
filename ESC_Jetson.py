@@ -1,154 +1,80 @@
-import os  # importing os library
-import time  # importing time
+#!/usr/bin/env python
 
-os.system("sudo pigpiod")  # Launching GPIO library
-time.sleep(1)  # don't remove this, else you will get an error
-import jetson_gpio as pigpio  # importing GPIO library
+# Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
-lMotor = 4  # ESC connections with the GPIO pins; note its the BROADCOM number, not the GPIO pin number!
-rMotor = 17
+import RPi.GPIO as GPIO
+import time
 
-pi = pigpio.pi();
-pi.set_servo_pulsewidth(lMotor, 0)
-pi.set_servo_pulsewidth(rMotor, 0)
-
-
-max_value = 2000  # change this if your ESC's max value is different or leave it
-min_value = 700  # change this if your ESC's min value is different or leave it
-print("For first time launch, select calibrate")
-print("Type the exact word for the function you want")
-print("calibrate OR manual OR control OR arm OR stop")
-
-
-def manual_drive():  # You will use this function to program your ESC if required
-    print("Manual mode selected: give a value between 0 and 2500")
-    while True:
-        inp = input()
-        if inp == "stop":
-            stop()
-            break
-        elif inp == "control":
-            control()
-            break
-        elif inp == "arm":
-            arm()
-            break
-        else:
-            pi.set_servo_pulsewidth(lMotor, inp)
-            pi.set_servo_pulsewidth(rMotor, inp)
-
-def calibrate():  # This is the auto calibration procedure of a normal ESC
-    pi.set_servo_pulsewidth(lMotor, 0)
-    pi.set_servo_pulsewidth(rMotor, 0)
-    print("Disconnect the battery and press Enter")
-    inp = input()
-    if inp == '':
-        pi.set_servo_pulsewidth(lMotor, max_value)
-        pi.set_servo_pulsewidth(rMotor, max_value)
-        print(
-            "Connect the battery NOW.. you will here two beeps, then wait for a gradual falling tone then press Enter")
-        inp = input()
-        if inp == '':
-            pi.set_servo_pulsewidth(lMotor, min_value)
-            pi.set_servo_pulsewidth(rMotor, min_value)
-            print("Wait...")
-            time.sleep(7)
-            print("Wait for it ....")
-            time.sleep(5)
-            print("WAIT...")
-            pi.set_servo_pulsewidth(lMotor, 0)
-            pi.set_servo_pulsewidth(rMotor, 0)
-            time.sleep(2)
-            print("Arming ESC now...")
-            pi.set_servo_pulsewidth(lMotor, min_value)
-            pi.set_servo_pulsewidth(rMotor, min_value)
-            time.sleep(1)
-            print("Here it goes!")
-            control()  # You can change this to any other function you want
+output_pins = {
+    'JETSON_XAVIER': 18,
+    'JETSON_NANO': 33,
+    'JETSON_NX': 33,
+    'CLARA_AGX_XAVIER': 18,
+    'JETSON_TX2_NX': 32,
+}
+output_pin = output_pins.get(GPIO.model, None)
+if output_pin is None:
+    raise Exception('PWM not supported on this board')
 
 
-def control():
-    print("Starting the motors, first it should be calibrated and armed, if not restart the program using 'x'")
-    time.sleep(1)
-    left_speed = 0
-    right_speed = 0
-    # change your speed if you want to.... it should be between 700 - 2000
+def main():
+    # Pin Setup:
+    # Board pin-numbering scheme
+    GPIO.setmode(GPIO.BOARD)
+    # set pin as an output pin with optional initial state of HIGH
+    GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
+    leftMotor = GPIO.PWM(output_pin, 50)
+    rightMotor = GPIO.PWM(output_pin, 79)
+    val = 1500
+    leftSpeed = 0
+    rightSpeed = 0
+    leftMotor.start(val)
+    rightMotor.start(val)
 
-    print("Controls - Left s+ z- / Right k+ m-")
-    print("Brake - v")
-    while True:
-        pi.set_servo_pulsewidth(lMotor, left_speed + 1500)
-        pi.set_servo_pulsewidth(rMotor, right_speed + 1500)
-        inp = input()
+    print("PWM running. Left Motor s+ z- / Right Motor k+ m- / Stop v")
+    try:
+        while True:
+            leftMotor.ChangeDutyCycle(val + leftSpeed)
+            rightMotor.ChangeDutyCycle(val + rightSpeed)
+            inp = input()
+            if inp == "s":
+                leftSpeed += 50  # decrementing the speed a lot
+                print("speed = %d" % (leftSpeed,))
+            elif inp == "z":
+                leftSpeed -= 50  # incrementing the speed a lot
+                print("speed = %d" % (leftSpeed,))
+            elif inp == "k":
+                rightSpeed += 50  # incrementing the speed
+                print("speed = %d" % (rightSpeed,))
+            elif inp == "m":
+                rightSpeed -= 50  # decrementing the speed
+                print("speed = %d" % (rightSpeed,))
+            elif inp == "v":
+                leftSpeed = 0  # decrementing the speed
+                rightSpeed = 0  # decrementing the speed
+                print("speed = %d" % (leftSpeed,))
+                print("speed = %d" % (rightSpeed,))
+    finally:
+        leftMotor.stop()
+        rightMotor.stop()
+        GPIO.cleanup()
 
-        if inp == "s":
-            left_speed += 50  # decrementing the speed a lot
-            print("speed = %d" % (left_speed,))
-        elif inp == "z":
-            left_speed -= 50  # incrementing the speed a lot
-            print("speed = %d" % (left_speed,))
-        elif inp == "k":
-            right_speed += 50 # incrementing the speed
-            print("speed = %d" % (right_speed,))
-        elif inp == "m":
-            right_speed -= 50  # decrementing the speed
-            print("speed = %d" % (right_speed,))
-        elif inp == "v":
-            left_speed = 0  # decrementing the speed
-            right_speed = 0  # decrementing the speed
-            print("speed = %d" % (left_speed,))
-            print("speed = %d" % (right_speed,))
-        elif inp == "stop":
-            stop()  # stopping everything
-            break
-        elif inp == "manual":
-            manual_drive()
-            break
-        elif inp == "arm":
-            arm()
-            break
-        else:
-            print("Press a,q,d or e for controls")
-
-
-def arm():  # This is the arming procedure of an ESC
-    print("Connect the battery and press Enter")
-    inp = input()
-    if inp == '':
-        pi.set_servo_pulsewidth(lMotor, 0)
-        pi.set_servo_pulsewidth(rMotor, 0)
-        time.sleep(1)
-        pi.set_servo_pulsewidth(lMotor, max_value)
-        pi.set_servo_pulsewidth(rMotor, max_value)
-        time.sleep(1)
-        pi.set_servo_pulsewidth(lMotor, min_value)
-        pi.set_servo_pulsewidth(rMotor, min_value)
-        time.sleep(1)
-        control()
-
-
-def stop():  # This will stop every action your Pi is performing for ESC ofcourse.
-    pi.set_servo_pulsewidth(lMotor, 0)
-    pi.set_servo_pulsewidth(rMotor, 0)
-    pi.stop()
-
-def leftMotorSpeed(Speed):
-    pi.set_servo_pulsewidth(lMotor, Speed * 50 + 1500)
-
-def rightMotorSpeed(Speed):
-    pi.set_servo_pulsewidth(lMotor, Speed * 50 + 1500)
-
-
-inp = input()
-if inp == "manual":
-    manual_drive()
-elif inp == "calibrate":
-    calibrate()
-elif inp == "arm":
-    arm()
-elif inp == "control":
-    control()
-elif inp == "stop":
-    stop()
-else:
-    print("Something is not right, jsut check and restart the program")
+if __name__ == '__main__':
+    main()
