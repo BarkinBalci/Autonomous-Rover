@@ -81,6 +81,7 @@ nnOut.setStreamName("nn")
 nn.out.link(nnOut.input)
 
 q_list = []
+settings = False
 
 class trackbar:
     def __init__(self, trackbarName, windowName, minValue, maxValue, defaultValue, handler):
@@ -100,10 +101,11 @@ class wlsFilter:
         self._lambda = _lambda
         self._sigma = _sigma
         self.wlsFilter = cv2.ximgproc.createDisparityWLSFilterGeneric(False)
-        cv2.imshow(self.wlsName, logo)
-        cv2.namedWindow(self.wlsName, cv2.WINDOW_AUTOSIZE)
-        self.lambdaTrackbar = trackbar('Lambda', self.wlsName, 0, 255, 80, self.on_trackbar_change_lambda)
-        self.sigmaTrackbar = trackbar('Sigma', self.wlsName, 0, 100, 15, self.on_trackbar_change_sigma)
+        if settings == True:
+            cv2.imshow(self.wlsName, logo)
+            cv2.namedWindow(self.wlsName, cv2.WINDOW_AUTOSIZE)
+            self.lambdaTrackbar = trackbar('Lambda', self.wlsName, 0, 255, 80, self.on_trackbar_change_lambda)
+            self.sigmaTrackbar = trackbar('Sigma', self.wlsName, 0, 100, 15, self.on_trackbar_change_sigma)
 
     def filter(self, disparity, right, depthScaleFactor):
         # https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/include/opencv2/ximgproc/disparity_filter.hpp#L92
@@ -215,35 +217,35 @@ with contextlib.ExitStack() as stack:
             if collision[0] == False and collision[1] == False and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(60)
-                print("Düz gidiliyor.")
+                print("Going Forward")
             if collision[0] == True and collision[1] == False and collision[2] == True:
                 leftMotorSpeed(60)
                 rightMotorSpeed(60)
-                print("Düz gidiliyor.")
-            elif collision[0] == False and collision[1] == True and collision[2] == False:
+                print("Going Forward")
+            if collision[0] == False and collision[1] == True and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Sağa dönülüyor.")
-            elif collision[0] == True and collision[1] == False and collision[2] == False:
+                print("Turning Right")
+            if collision[0] == True and collision[1] == False and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Sağa dönülüyor.")
-            elif collision[0] == True and collision[1] == True and collision[2] == False:
+                print("Turning Right")
+            if collision[0] == True and collision[1] == True and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Sağa dönülüyor.")
-            elif collision[0] == False and collision[1] == False and collision[2] == True:
+                print("Turning Right")
+            if collision[0] == False and collision[1] == False and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Sola dönülüyor.")
-            elif collision[0] == False and collision[1] == True and collision[2] == True:
+                print("Turning Left")
+            if collision[0] == False and collision[1] == True and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Sola dönülüyor.")
-            elif collision[0] == True and collision[1] == True and collision[2] == True:
+                print("Turning Left")
+            if collision[0] == True and collision[1] == True and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Sola dönülüyor.")
+                print("Turning Left")
             detections = []
             if in_det is not None:
                 detections = in_det.detections
