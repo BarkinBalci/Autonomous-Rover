@@ -87,9 +87,10 @@ def main():
 
 def leftMotorSpeed(Speed):
     leftMotor.ChangeDutyCycle(Speed)
-
+    print("Left Motor Speed: " + str(leftSpeed))
 def rightMotorSpeed(Speed):
     rightMotor.ChangeDutyCycle(Speed)
+    print("Right Motor Speed: " + str(rightSpeed))
 
 def disarm():
     leftMotor.stop()
