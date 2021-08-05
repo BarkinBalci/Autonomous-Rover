@@ -54,35 +54,36 @@ rightMotor.start(leftSpeed)
 
 
 print("PWM running. Press CTRL+C to exit.")
-try:
-    while True:
-        inp = input()
-        if inp == "s" and leftSpeed < maxSpeed:
-            leftSpeed += leftIncrease
-        elif inp == "z" and leftSpeed > lowestSpeed:
-            leftSpeed -= leftIncrease
-        elif inp == "k" and rightSpeed < maxSpeed:
-            rightSpeed += rightIncrease
-        elif inp == "m" and rightSpeed > lowestSpeed:
-            rightSpeed -= rightIncrease
-        elif inp == "forward":
-            leftSpeed = 100
-            rightSpeed = 100
-        elif inp == "backward":
-            leftSpeed = 0
-            rightSpeed = 0
-        elif inp == "v":
-            leftSpeed = 50
-            rightSpeed = 50
+def main():
+    try:
+        while True:
+            inp = input()
+            if inp == "s" and leftSpeed < maxSpeed:
+                leftSpeed += leftIncrease
+            elif inp == "z" and leftSpeed > lowestSpeed:
+                leftSpeed -= leftIncrease
+            elif inp == "k" and rightSpeed < maxSpeed:
+                rightSpeed += rightIncrease
+            elif inp == "m" and rightSpeed > lowestSpeed:
+                rightSpeed -= rightIncrease
+            elif inp == "forward":
+                leftSpeed = 100
+                rightSpeed = 100
+            elif inp == "backward":
+                leftSpeed = 0
+                rightSpeed = 0
+            elif inp == "v":
+                leftSpeed = 50
+                rightSpeed = 50
 
-        leftMotor.ChangeDutyCycle(leftSpeed)
-        rightMotor.ChangeDutyCycle(rightSpeed)
-        print("Left Motor Speed: " + str(leftSpeed))
-        print("Right Motor Speed: " + str(rightSpeed))
-finally:
-    leftMotor.stop()
-    rightMotor.stop()
-    GPIO.cleanup()
+            leftMotor.ChangeDutyCycle(leftSpeed)
+            rightMotor.ChangeDutyCycle(rightSpeed)
+            print("Left Motor Speed: " + str(leftSpeed))
+            print("Right Motor Speed: " + str(rightSpeed))
+    finally:
+        leftMotor.stop()
+        rightMotor.stop()
+        GPIO.cleanup()
 
 def leftMotorSpeed(Speed):
     leftMotor.ChangeDutyCycle(Speed)
