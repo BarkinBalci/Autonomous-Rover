@@ -130,6 +130,9 @@ disp_levels = 96
 fov = 71.86
 coloredDisp = {}
 collision = {}
+collision[0] = True
+collision[1] = True
+collision[2] = True
 fig, ax = plt.subplots()
 
 ax.set_title('Histogram (RGB)')
@@ -217,37 +220,38 @@ with contextlib.ExitStack() as stack:
             if collision[0] == False and collision[1] == False and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(60)
-                print("Going Forward")
+                print("Status: Going Forward")
             if collision[0] == True and collision[1] == False and collision[2] == True:
                 leftMotorSpeed(60)
                 rightMotorSpeed(60)
-                print("Going Forward")
+                print("Status: Going Forward")
             if collision[0] == False and collision[1] == True and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Turning Right")
+                print("Status: Turning Right")
             if collision[0] == True and collision[1] == False and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Turning Right")
+                print("Status: Turning Right")
             if collision[0] == True and collision[1] == True and collision[2] == False:
                 leftMotorSpeed(60)
                 rightMotorSpeed(40)
-                print("Turning Right")
+                print("Status: Turning Right")
             if collision[0] == False and collision[1] == False and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Turning Left")
+                print("Status: Turning Left")
             if collision[0] == False and collision[1] == True and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Turning Left")
+                print("Status: Turning Left")
             if collision[0] == True and collision[1] == True and collision[2] == True:
                 leftMotorSpeed(40)
                 rightMotorSpeed(60)
-                print("Turning Left")
+                print("Status: Turning Left")
             detections = []
             if in_det is not None:
                 detections = in_det.detections
         if cv2.waitKey(1) == ord('q'):
+            disarm()
             break
